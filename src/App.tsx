@@ -71,15 +71,13 @@ export default function App() {
         const res = await fetch("/api/db/load");
         const data = await res.json();
 
+        let loadedEncryptedState: string | null = null;
+
         if (data && data.encryptedState) {
+          loadedEncryptedState = data.encryptedState;
           setCloudEncryptedState(data.encryptedState);
           setLastBackupDate(data.lastBackupDate);
           
-          // Decode enough settings to check passwordHash or we can ask on LoginScreen
-          // To get passwordHash, we require user to input password first.
-          // Let's first parse the hash from cached state if we have a copy.
-          // Or we can retrieve hash from a separate local cache or find it inside encryptedData.
-          // Let's fall back to localStorage for hash check, or extract settings directly.
           const cachedHash = localStorage.getItem("pin_hash") || "";
           setStoredHash(cachedHash || "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"); // default '1234' hash
         } else {
@@ -88,12 +86,37 @@ export default function App() {
           const localBackupDate = localStorage.getItem("local_backup_date");
 
           if (localEncrypted) {
+            loadedEncryptedState = localEncrypted;
             setCloudEncryptedState(localEncrypted);
             setLastBackupDate(localBackupDate);
           }
           
           const cachedHash = localStorage.getItem("pin_hash") || "";
           setStoredHash(cachedHash || "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"); // '1234'
+        }
+
+        // Auto-login with saved session password if exists
+        const savedPassword = sessionStorage.getItem("user_session_password") || localStorage.getItem("user_session_password");
+        if (savedPassword && loadedEncryptedState) {
+          try {
+            const decryptedStr = await decryptData(loadedEncryptedState, savedPassword);
+            const state: DatabaseState = JSON.parse(decryptedStr);
+
+            setTransactions(state.transactions || []);
+            setInstallments(state.installments || []);
+            setGoals(state.goals || []);
+            setReminders(state.reminders || []);
+            setSettings(state.settings);
+            setUserPassword(savedPassword);
+
+            // Apply dark mode settings
+            document.documentElement.classList.toggle("dark", state.settings.isDark);
+            setIsLoggedIn(true);
+          } catch (e) {
+            console.error("Auto-login failed:", e);
+            sessionStorage.removeItem("user_session_password");
+            localStorage.removeItem("user_session_password");
+          }
         }
       } catch (err) {
         console.error("Booting error:", err);
@@ -142,7 +165,6 @@ export default function App() {
       if (saveRes.ok) {
         const data = await saveRes.json();
         setLastBackupDate(data.lastBackupDate);
-        showTemporarySyncMessage("Bulut Senkronizasyonu Aktif");
       }
     } catch (err) {
       console.error("Auto-sync error:", err);
@@ -159,6 +181,8 @@ export default function App() {
   // Login handler
   const handleLoginSuccess = async (passwordVal: string) => {
     setUserPassword(passwordVal);
+    sessionStorage.setItem("user_session_password", passwordVal);
+    localStorage.setItem("user_session_password", passwordVal);
 
     try {
       if (cloudEncryptedState) {
@@ -207,6 +231,8 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
+      sessionStorage.removeItem("user_session_password");
+      localStorage.removeItem("user_session_password");
       alert("Şifre doğrulama hatası ya da veri açılamadı!");
     }
   };
@@ -214,6 +240,8 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUserPassword("");
+    sessionStorage.removeItem("user_session_password");
+    localStorage.removeItem("user_session_password");
     // Keep cached hashes but clear session states
   };
 
@@ -225,6 +253,7 @@ export default function App() {
     }
     // Temizle
     localStorage.clear();
+    sessionStorage.clear();
     setCloudEncryptedState(null);
     setTransactions([]);
     setInstallments([]);
@@ -424,14 +453,27 @@ export default function App() {
     triggerAutoSave(transactions, installments, goals, reminders, updatedSets, userPassword);
   };
 
-  const handlePasswordChange = (newHash: string) => {
+  const handlePasswordChange = (newHash: string, newPw?: string) => {
     const updatedSets = { ...settings, passwordHash: newHash };
     setSettings(updatedSets);
     setStoredHash(newHash);
     localStorage.setItem("pin_hash", newHash);
+    
+    let activePassword = userPassword;
+    if (newPw) {
+      activePassword = newPw;
+      setUserPassword(newPw);
+      sessionStorage.setItem("user_session_password", newPw);
+      localStorage.setItem("user_session_password", newPw);
+    }
+
     // Re-encrypt the overall database with the new password string we derive!
-    // Since password string changes, we must inform user to re-log.
-    // For simplicity, we can also let them know.
+    triggerAutoSave(transactions, installments, goals, reminders, updatedSets, activePassword);
+  };
+
+  const handleGeminiApiKeyChange = (key: string) => {
+    const updatedSets = { ...settings, geminiApiKey: key };
+    setSettings(updatedSets);
     triggerAutoSave(transactions, installments, goals, reminders, updatedSets, userPassword);
   };
 
@@ -529,7 +571,6 @@ export default function App() {
       <LoginScreen
         storedHash={storedHash}
         onLoginSuccess={handleLoginSuccess}
-        onResetDatabase={handleResetDatabase}
         palette={(THEME_PALETTES as any)[settings.themeColor || "emerald"]}
       />
     );
@@ -571,7 +612,7 @@ export default function App() {
           />
         );
       case "ocr":
-        return <ReceiptScanner onAddTransaction={handleAddTransaction} palette={activePalette} />;
+        return <ReceiptScanner onAddTransaction={handleAddTransaction} palette={activePalette} geminiApiKey={settings.geminiApiKey} />;
       case "goals":
         return (
           <GoalsTracker
@@ -600,6 +641,7 @@ export default function App() {
             goals={goals}
             installments={installments}
             palette={activePalette}
+            geminiApiKey={settings.geminiApiKey}
           />
         );
       case "settings":
@@ -609,12 +651,14 @@ export default function App() {
             isDark={settings.isDark}
             storedHash={storedHash}
             lastBackupDate={lastBackupDate}
+            geminiApiKey={settings.geminiApiKey}
             onThemeChange={handleThemeChange}
             onDarkToggle={handleDarkToggle}
             onPasswordChange={handlePasswordChange}
             onCloudSync={handleCloudSyncForce}
             onExportBackup={handleExportBackup}
             onImportBackup={handleImportBackup}
+            onGeminiApiKeyChange={handleGeminiApiKeyChange}
             palette={activePalette}
           />
         );

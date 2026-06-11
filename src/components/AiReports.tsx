@@ -7,13 +7,15 @@ interface AiReportsProps {
   goals: BudgetGoal[];
   installments: Installment[];
   palette: any;
+  geminiApiKey?: string;
 }
 
 export default function AiReports({
   transactions,
   goals,
   installments,
-  palette
+  palette,
+  geminiApiKey
 }: AiReportsProps) {
   const [reportText, setReportText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,10 +74,18 @@ export default function AiReports({
     };
 
     try {
+      const headersValue: Record<string, string> = { "Content-Type": "application/json" };
+      if (geminiApiKey) {
+        headersValue["x-gemini-key"] = geminiApiKey;
+      }
+
       const response = await fetch("/api/fin-advice", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ monthlyStats })
+        headers: headersValue,
+        body: JSON.stringify({ 
+          monthlyStats,
+          geminiApiKey 
+        })
       });
 
       if (!response.ok) {

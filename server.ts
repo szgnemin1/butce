@@ -21,24 +21,19 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 // Lazy initialization pattern for Gemini API client to prevent crash if key is missing
-let aiClient: GoogleGenAI | null = null;
-
-function getGeminiClient(): GoogleGenAI {
-  if (!aiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error("GEMINI_API_KEY environment variable is missing from AI Studio secrets.");
-    }
-    aiClient = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
+function getGeminiClient(customKey?: string): GoogleGenAI {
+  const key = customKey || process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error("GEMINI_API_KEY bulunamadı. Lütfen Ayarlar panelinden bir Gemini API Anahtarı tanımlayın veya Sunucuda GEMINI_API_KEY çevre değişkenini ayarlayın.");
   }
-  return aiClient;
+  return new GoogleGenAI({
+    apiKey: key,
+    httpOptions: {
+      headers: {
+        "User-Agent": "aistudio-build",
+      },
+    },
+  });
 }
 
 // -------------------------------------------------------------
@@ -110,14 +105,15 @@ app.post("/api/db/reset", (req: Request, res: Response) => {
  */
 app.post("/api/ocr-receipt", async (req: Request, res: Response) => {
   try {
-    const { base64Image, mimeType } = req.body;
+    const { base64Image, mimeType, geminiApiKey } = req.body;
 
     if (!base64Image) {
       res.status(400).json({ error: "Görüntü verisi bulunamadı." });
       return;
     }
 
-    const client = getGeminiClient();
+    const customKey = (req.headers["x-gemini-key"] as string) || geminiApiKey;
+    const client = getGeminiClient(customKey);
 
     const promptText = `
       You are an expert receipt OCR and finance categorization parser.
@@ -192,14 +188,15 @@ app.post("/api/ocr-receipt", async (req: Request, res: Response) => {
  */
 app.post("/api/fin-advice", async (req: Request, res: Response) => {
   try {
-    const { monthlyStats } = req.body;
+    const { monthlyStats, geminiApiKey } = req.body;
 
     if (!monthlyStats) {
       res.status(400).json({ error: "Analiz için istatistik verisi bulunamadı." });
       return;
     }
 
-    const client = getGeminiClient();
+    const customKey = (req.headers["x-gemini-key"] as string) || geminiApiKey;
+    const client = getGeminiClient(customKey);
 
     const promptText = `
       You are an expert personal finance advisor (Bireysel Finans Danışmanı).

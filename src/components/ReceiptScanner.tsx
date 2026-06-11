@@ -11,9 +11,10 @@ interface ReceiptScannerProps {
     description: string;
   }) => void;
   palette: any;
+  geminiApiKey?: string;
 }
 
-export default function ReceiptScanner({ onAddTransaction, palette }: ReceiptScannerProps) {
+export default function ReceiptScanner({ onAddTransaction, palette, geminiApiKey }: ReceiptScannerProps) {
   const [dragActive, setDragActive] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("image/jpeg");
@@ -106,10 +107,19 @@ export default function ReceiptScanner({ onAddTransaction, palette }: ReceiptSca
     }, 2000);
 
     try {
+      const headersValue: Record<string, string> = { "Content-Type": "application/json" };
+      if (geminiApiKey) {
+        headersValue["x-gemini-key"] = geminiApiKey;
+      }
+
       const response = await fetch("/api/ocr-receipt", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base64Image: base64Data, mimeType })
+        headers: headersValue,
+        body: JSON.stringify({ 
+          base64Image: base64Data, 
+          mimeType,
+          geminiApiKey 
+        })
       });
 
       if (!response.ok) {
