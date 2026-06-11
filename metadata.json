@@ -1,0 +1,8 @@
+{
+  "name": "Bütçe ve Harcama Takibi",
+  "description": "Yapay zeka destekli fiş okuma, taksitli harcamalar, bütçe hedefleri, düzenli ödeme hatırlatıcılar ve uçtan uca şifreli veri senkronizasyonu barındıran bütçe takip uygulaması.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
