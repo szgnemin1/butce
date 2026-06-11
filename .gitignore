@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Veritabanı dosyaları (GitHub'a veri sızmasını önlemek için)
+data/
+db_encrypted.json
+

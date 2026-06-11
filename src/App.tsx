@@ -217,6 +217,29 @@ export default function App() {
     // Keep cached hashes but clear session states
   };
 
+  const handleResetDatabase = async () => {
+    try {
+      await fetch("/api/db/reset", { method: "POST" });
+    } catch (err) {
+      console.error("Server ve sunucu sıfırlama hatası:", err);
+    }
+    // Temizle
+    localStorage.clear();
+    setCloudEncryptedState(null);
+    setTransactions([]);
+    setInstallments([]);
+    setGoals([]);
+    setReminders([]);
+    setSettings({
+      themeColor: "emerald",
+      isDark: false,
+      passwordHash: ""
+    });
+    setStoredHash("03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"); // default '1234' hash
+    setLastBackupDate(null);
+    alert("Tüm sistem verileri başarıyla sıfırlandı! Şimdi '1234' şifresini yazıp 'Giriş Yap' veya 'Onayla' butonuna basarak yeni şifreli profilinizi ve örnek verilerinizi oluşturabilirsiniz.");
+  };
+
   // -----------------------------------------------------------------
   // Data State Mutator Handlers (Trigger auto-saves)
   // -----------------------------------------------------------------
@@ -506,6 +529,7 @@ export default function App() {
       <LoginScreen
         storedHash={storedHash}
         onLoginSuccess={handleLoginSuccess}
+        onResetDatabase={handleResetDatabase}
         palette={(THEME_PALETTES as any)[settings.themeColor || "emerald"]}
       />
     );

@@ -1,21 +1,24 @@
 import React, { useState } from "react";
-import { Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Lock, Eye, EyeOff, ShieldCheck, AlertTriangle, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { hashPassword } from "../utils/security";
 
 interface LoginScreenProps {
   storedHash: string;
   onLoginSuccess: (password: string) => void;
   palette: any;
+  onResetDatabase: () => Promise<void>;
 }
 
-export default function LoginScreen({ storedHash, onLoginSuccess, palette }: LoginScreenProps) {
+export default function LoginScreen({ storedHash, onLoginSuccess, palette, onResetDatabase }: LoginScreenProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!password) return;
 
     setIsSubmitting(true);
@@ -45,6 +48,24 @@ export default function LoginScreen({ storedHash, onLoginSuccess, palette }: Log
 
   const handleClear = () => {
     setPassword("");
+  };
+
+  const handleResetClick = async () => {
+    const isConfirmed = window.confirm(
+      "Dikkat! Bu işlem tarayıcıdaki yerel verileri ve sunucuya (VDS) yedeklenmiş olan şifreli verilerinizi tamamen silecektir.\n\nSıfırlama başarılı olduktan sonra yeni şifreniz '1234' olarak tanımlanacaktır. Devam etmek istiyor musunuz?"
+    );
+    if (!isConfirmed) return;
+
+    setIsResetting(true);
+    try {
+      await onResetDatabase();
+      setPassword("");
+      setError("");
+    } catch (err) {
+      alert("Sıfırlama işlemi başarısız oldu.");
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -136,6 +157,44 @@ export default function LoginScreen({ storedHash, onLoginSuccess, palette }: Log
               Onayla
             </button>
           </div>
+        </div>
+
+        {/* Troubleshooting/Reset Section */}
+        <div className="mt-6 pt-4 border-t border-slate-150 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => setShowHelp(!showHelp)}
+            className="w-full flex items-center justify-between py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+          >
+            <span>Giriş Sorunları ve Şifre Sıfırlama</span>
+            {showHelp ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          
+          {showHelp && (
+            <div className="mt-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2.5">
+              <div className="flex gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Tarayıcı önbelleğinizde veya sunucunuzda, eski sürümlerden kalma ve <span className="font-mono font-bold bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded text-slate-800 dark:text-slate-200">test</span> şifresiyle şifrelenmiş veriler bulunuyor olabilir. Eskiden şifrelenen veriler yanlış PIN hatası verir.
+                </p>
+              </div>
+
+              <div className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed pl-6 space-y-1.5">
+                <p>💡 <span className="font-semibold">Çözüm 1:</span> Giriş alanına <span className="font-mono font-bold bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-800 dark:text-slate-200">test</span> yazarak girmeyi deneyin.</p>
+                <p>🛠️ <span className="font-semibold">Çözüm 2:</span> Verileri tamamen temizleyip yeni şifrenizi <span className="font-semibold text-emerald-600 dark:text-emerald-400">1234</span> yapmak için aşağıdaki sıfırlama butonunu kullanın.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetClick}
+                disabled={isResetting}
+                className="w-full mt-1.5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
+                {isResetting ? "Sistem Sıfırlanıyor..." : "Verileri Sıfırla ve Girişi 1234 Yap"}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-slate-400">

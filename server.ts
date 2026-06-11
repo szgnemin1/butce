@@ -89,6 +89,22 @@ app.post("/api/db/save", (req: Request, res: Response) => {
 });
 
 /**
+ * Endpoint to completely reset/delete the server-side encrypted state.
+ * Lets users start fresh with a clean database if they forget their encryption PIN or deploy code newly.
+ */
+app.post("/api/db/reset", (req: Request, res: Response) => {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      fs.unlinkSync(DB_FILE);
+    }
+    res.json({ success: true, message: "Sunucu veri dosyası başarıyla sıfırlandı." });
+  } catch (error) {
+    console.error("Database reset error:", error);
+    res.status(500).json({ error: "Veri dosyası sıfırlanırken sunucu hatası oluştu." });
+  }
+});
+
+/**
  * Endpoint to perform OCR / Fiş okuma.
  * Receives a base64 receipt image, queries Gemini 3.5 Flash, extracts fields in standard format.
  */
