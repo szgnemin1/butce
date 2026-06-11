@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { 
   BarChart3, 
   Receipt, 
-  Sparkles, 
   Target, 
   BellRing, 
   Settings, 
@@ -13,8 +12,7 @@ import {
   Database,
   CloudLightning,
   ShieldCheck,
-  CheckCircle,
-  FileSpreadsheet
+  CheckCircle
 } from "lucide-react";
 
 import { 
@@ -30,10 +28,8 @@ import LoginScreen from "./components/LoginScreen";
 import DashboardOverview from "./components/DashboardOverview";
 import AnalyticsCharts from "./components/AnalyticsCharts";
 import InstallmentsManager from "./components/InstallmentsManager";
-import ReceiptScanner from "./components/ReceiptScanner";
 import GoalsTracker from "./components/GoalsTracker";
 import RemindersList from "./components/RemindersList";
-import AiReports from "./components/AiReports";
 import SettingsPanel from "./components/SettingsPanel";
 
 import { encryptData, decryptData, hashPassword } from "./utils/security";
@@ -471,12 +467,6 @@ export default function App() {
     triggerAutoSave(transactions, installments, goals, reminders, updatedSets, activePassword);
   };
 
-  const handleGeminiApiKeyChange = (key: string) => {
-    const updatedSets = { ...settings, geminiApiKey: key };
-    setSettings(updatedSets);
-    triggerAutoSave(transactions, installments, goals, reminders, updatedSets, userPassword);
-  };
-
   // Manual export / backup (.json encrypted document download)
   const handleExportBackup = async () => {
     try {
@@ -611,8 +601,6 @@ export default function App() {
             palette={activePalette}
           />
         );
-      case "ocr":
-        return <ReceiptScanner onAddTransaction={handleAddTransaction} palette={activePalette} geminiApiKey={settings.geminiApiKey} />;
       case "goals":
         return (
           <GoalsTracker
@@ -634,16 +622,6 @@ export default function App() {
             palette={activePalette}
           />
         );
-      case "ai-report":
-        return (
-          <AiReports
-            transactions={transactions}
-            goals={goals}
-            installments={installments}
-            palette={activePalette}
-            geminiApiKey={settings.geminiApiKey}
-          />
-        );
       case "settings":
         return (
           <SettingsPanel
@@ -651,14 +629,12 @@ export default function App() {
             isDark={settings.isDark}
             storedHash={storedHash}
             lastBackupDate={lastBackupDate}
-            geminiApiKey={settings.geminiApiKey}
             onThemeChange={handleThemeChange}
             onDarkToggle={handleDarkToggle}
             onPasswordChange={handlePasswordChange}
             onCloudSync={handleCloudSyncForce}
             onExportBackup={handleExportBackup}
             onImportBackup={handleImportBackup}
-            onGeminiApiKeyChange={handleGeminiApiKeyChange}
             palette={activePalette}
           />
         );
@@ -671,10 +647,8 @@ export default function App() {
     { id: "dashboard", label: "Özet", icon: Grid },
     { id: "charts", label: "Grafikler", icon: BarChart3 },
     { id: "expenses", label: "Gider & Taksit", icon: Receipt },
-    { id: "ocr", label: "Fiş Tara (AI)", icon: Sparkles },
     { id: "goals", label: "Hedefler", icon: Target },
     { id: "reminders", label: "Hatırlatıcılar", icon: BellRing },
-    { id: "ai-report", label: "Tavsiye Raporu", icon: FileSpreadsheet },
     { id: "settings", label: "Ayarlar", icon: Settings }
   ];
 

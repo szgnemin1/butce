@@ -1,21 +1,19 @@
 import React, { useState, useRef } from "react";
 import { THEME_PALETTES, CATEGORIES } from "../utils/mockData";
 import { hashPassword } from "../utils/security";
-import { RefreshCw, Download, Upload, ShieldAlert, Key, CheckCircle, Smartphone, Sparkles, Eye, EyeOff } from "lucide-react";
+import { RefreshCw, Download, Upload, ShieldAlert, Key, CheckCircle, Smartphone } from "lucide-react";
 
 interface SettingsPanelProps {
   currentTheme: 'zinc' | 'blue' | 'emerald' | 'amber' | 'violet' | 'rose';
   isDark: boolean;
   storedHash: string;
   lastBackupDate: string | null;
-  geminiApiKey?: string;
   onThemeChange: (color: 'zinc' | 'blue' | 'emerald' | 'amber' | 'violet' | 'rose') => void;
   onDarkToggle: (val: boolean) => void;
   onPasswordChange: (newHash: string, newPw?: string) => void;
   onCloudSync: () => void;
   onExportBackup: () => void;
   onImportBackup: (file: File) => void;
-  onGeminiApiKeyChange: (key: string) => void;
   palette: any;
 }
 
@@ -24,14 +22,12 @@ export default function SettingsPanel({
   isDark,
   storedHash,
   lastBackupDate,
-  geminiApiKey = "",
   onThemeChange,
   onDarkToggle,
   onPasswordChange,
   onCloudSync,
   onExportBackup,
   onImportBackup,
-  onGeminiApiKeyChange,
   palette
 }: SettingsPanelProps) {
   // Password change Form states
@@ -40,11 +36,6 @@ export default function SettingsPanel({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
-
-  // Gemini API Key config local state
-  const [apiKeyInput, setApiKeyInput] = useState(geminiApiKey);
-  const [showKey, setShowKey] = useState(false);
-  const [apiKeySuccess, setApiKeySuccess] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -276,57 +267,6 @@ export default function SettingsPanel({
             className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow transition"
           >
             Şifreyi Güncelle
-          </button>
-        </form>
-      </div>
-
-      {/* Gemini AI API Key config */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-5 h-5 text-indigo-500" />
-          <h3 className="font-bold text-slate-800 dark:text-white text-base">Gemini Yapay Zeka API Anahtarı</h3>
-        </div>
-        <p className="text-slate-400 text-xs mb-6">
-          Fiş/Fatura okuma (OCR) ve Akıllı Finansal Tasarruf raporları almak için kendi Gemini API anahtarınızı tanımlayabilirsiniz. Anahtarınız tarayıcınızda ve bulut yedeklemenizde uçtan uca şifreli olarak saklanır, asla başkasıyla paylaşılmaz.
-        </p>
-
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          onGeminiApiKeyChange(apiKeyInput);
-          setApiKeySuccess("Gemini API anahtarınız başarıyla güncellendi.");
-          setTimeout(() => setApiKeySuccess(""), 3000);
-        }} className="space-y-4 max-w-sm">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">Gemini API Key</label>
-            <div className="relative">
-              <input
-                type={showKey ? "text" : "password"}
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="AIzaSy..."
-                className="w-full pl-3 pr-10 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none font-mono"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {apiKeySuccess && (
-            <p className="text-emerald-600 font-semibold text-xs flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-1 rounded-lg">
-              <CheckCircle className="w-3.5 h-3.5" /> {apiKeySuccess}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow transition"
-          >
-            API Anahtarını Kaydet
           </button>
         </form>
       </div>
